@@ -1,0 +1,1 @@
+This repository contains code used to reproduce and troubleshoot issues related to Azure scaleset with autoscale.
