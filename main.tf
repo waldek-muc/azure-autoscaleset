@@ -82,7 +82,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
   resource_group_name             = azurerm_resource_group.main.name
   location                        = azurerm_resource_group.main.location
   sku                             = "Standard_F2"
-  instances                       = 3
+  instances                       = 5
   admin_username                  = "adminuser"
   admin_password                  = "P@ssw0rd1234!"
   disable_password_authentication = false
@@ -135,7 +135,7 @@ resource "azurerm_monitor_autoscale_setting" "main" {
 
     capacity {
       default = 5
-      minimum = 1
+      minimum = 5
       maximum = 10
     }
 
@@ -198,3 +198,19 @@ resource "azurerm_monitor_autoscale_setting" "main" {
     }
   }
 }
+
+
+// if "terraform destroy" keeps failing, comment out the below code
+resource "azurerm_virtual_machine_scale_set_extension" "example" {
+  name                         = "example"
+  virtual_machine_scale_set_id = azurerm_linux_virtual_machine_scale_set.main.id
+  publisher                    = "Microsoft.Azure.Extensions"
+  type                         = "CustomScript"
+  type_handler_version         = "2.0"
+  settings = jsonencode({
+    "commandToExecute" = "echo $HOSTNAME"
+  })
+
+  
+}
+
