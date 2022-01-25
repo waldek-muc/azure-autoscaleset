@@ -91,8 +91,8 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
   name                            = "${var.prefix}-vmss"
   resource_group_name             = azurerm_resource_group.main.name
   location                        = azurerm_resource_group.main.location
-  sku                             = "Standard_F2"
-  instances                       = 5
+  sku                             = "Standard_B1s"
+  instances                       = 4
   admin_username                  = "adminuser"
   admin_password                  = "P@ssw0rd1234!"
   disable_password_authentication = false
@@ -101,8 +101,8 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts-gen2"
     version   = "latest"
   }
 
@@ -131,6 +131,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
     pause_time_between_batches              = "PT30S"
   }
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   extension {
     name                 = "example"
     type                 = "CustomScript"
@@ -140,6 +144,13 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
     settings = jsonencode({
       "commandToExecute" = "echo $HOSTNAME"
     })
+  }
+
+  extension {
+    name                 = "AADSSHLogin"
+    type                 = "AADSSHLoginForLinux"
+    type_handler_version = "1.0"
+    publisher            = "Microsoft.Azure.ActiveDirectory"
   }
 
   depends_on = [azurerm_lb_rule.main]
@@ -155,9 +166,9 @@ resource "azurerm_monitor_autoscale_setting" "main" {
     name = "Weekends"
 
     capacity {
-      default = 5
-      minimum = 5
-      maximum = 10
+      default = 4
+      minimum = 2
+      maximum = 6
     }
 
     rule {
