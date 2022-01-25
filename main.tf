@@ -1,3 +1,13 @@
+terraform {
+  required_version = ">= 1.0.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 2.81"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
 }
@@ -121,6 +131,17 @@ resource "azurerm_linux_virtual_machine_scale_set" "main" {
     pause_time_between_batches              = "PT30S"
   }
 
+  extension {
+    name                 = "example"
+    type                 = "CustomScript"
+    type_handler_version = "2.0"
+    publisher            = "Microsoft.Azure.Extensions"
+
+    settings = jsonencode({
+      "commandToExecute" = "echo $HOSTNAME"
+    })
+  }
+
   depends_on = [azurerm_lb_rule.main]
 }
 
@@ -178,16 +199,14 @@ resource "azurerm_monitor_autoscale_setting" "main" {
         cooldown  = "PT1M"
       }
     }
-/*
-    recurrence {
-      frequency = "Week"
-      timezone  = "Pacific Standard Time"
-      days      = ["Saturday", "Sunday"]
-      hours     = [12]
-      minutes   = [0]
-    }
 
-*/
+    # recurrence {
+    #   frequency = "Week"
+    #   timezone  = "Pacific Standard Time"
+    #   days      = ["Saturday", "Sunday"]
+    #   hours     = [12]
+    #   minutes   = [0]
+    # }
   }
 
   notification {
@@ -198,19 +217,3 @@ resource "azurerm_monitor_autoscale_setting" "main" {
     }
   }
 }
-
-
-// if "terraform destroy" keeps failing, comment out the below code
-resource "azurerm_virtual_machine_scale_set_extension" "example" {
-  name                         = "example"
-  virtual_machine_scale_set_id = azurerm_linux_virtual_machine_scale_set.main.id
-  publisher                    = "Microsoft.Azure.Extensions"
-  type                         = "CustomScript"
-  type_handler_version         = "2.0"
-  settings = jsonencode({
-    "commandToExecute" = "echo $HOSTNAME"
-  })
-
-  
-}
-
