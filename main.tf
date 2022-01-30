@@ -31,6 +31,7 @@ resource "azurerm_subnet" "internal" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
+/*
 
 resource "azurerm_public_ip" "main" {
   name                = "${var.prefix}-publicip"
@@ -39,20 +40,68 @@ resource "azurerm_public_ip" "main" {
   allocation_method   = "Static"
 }
 
+*/
+
+# NAT Gateway
+
+resource "azurerm_public_ip" "natgw_pubip" {
+  name                = "nat-gateway-publicIP"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_public_ip_prefix" "natgw_pubip_pref" {
+  name                = "nat-gateway-publicIPPrefix"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  prefix_length       = 30
+}
+
+resource "azurerm_nat_gateway" "NatGW" {
+  name                    = "nat-Gateway"
+  location                = azurerm_resource_group.main.location
+  resource_group_name     = azurerm_resource_group.main.name
+  sku_name                = "Standard"
+  idle_timeout_in_minutes = 10
+}
+
+# Associate public IP and prefix with NAT GW
+resource "azurerm_nat_gateway_public_ip_prefix_association" "example" {
+  nat_gateway_id      = azurerm_nat_gateway.NatGW.id
+  public_ip_prefix_id = azurerm_public_ip_prefix.natgw_pubip_pref.id
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "example" {
+  nat_gateway_id       = azurerm_nat_gateway.NatGW.id
+  public_ip_address_id = azurerm_public_ip.natgw_pubip.id
+}
+
+# Associate th NAT Gateway with subnet
+resource "azurerm_subnet_nat_gateway_association" "example" {
+  subnet_id      = azurerm_subnet.internal.id
+  nat_gateway_id = azurerm_nat_gateway.NatGW.id
+}
+
+# Create load balancer
 resource "azurerm_lb" "main" {
   name                = "${var.prefix}-lb"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
+  sku                 = "Standard"
 
   frontend_ip_configuration {
     name                 = "internal"
-    public_ip_address_id = azurerm_public_ip.main.id
+    # public_ip_address_id = azurerm_public_ip.main.id
+    subnet_id                     = azurerm_subnet.internal.id
+    #private_ip_address_allocation = "static"
   }
 }
 
 resource "azurerm_lb_backend_address_pool" "main" {
   name                = "backend-pool"
-  resource_group_name = azurerm_resource_group.main.name
+  #resource_group_name = azurerm_resource_group.main.name
   loadbalancer_id     = azurerm_lb.main.id
 }
 
